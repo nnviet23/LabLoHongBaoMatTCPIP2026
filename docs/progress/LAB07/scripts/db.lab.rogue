@@ -1,0 +1,12 @@
+$TTL 300
+@   IN  SOA ns1.lab.test. admin.lab.test. (
+        2026110801 ; serial
+        3600       ; refresh
+        1800       ; retry
+        604800     ; expire
+        300        ; minimum
+)
+@   IN  NS  ns1.lab.test.
+ns1 IN  A   10.0.0.66
+www IN  A   6.6.6.6
+
