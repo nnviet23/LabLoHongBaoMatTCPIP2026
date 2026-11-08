@@ -158,7 +158,7 @@ sudo bash /tmp/lab01/setup_pair.sh
    ```
 2. Mở tcpdump trên `h2` để ghi nhận gói tin:
    ```bash
-   sudo ip netns exec h2 timeout 5 tcpdump -i veth2 -nn "tcp port 8080" > /tmp/lab01/tcpdump_h2.log 2>&1 &
+   sudo ip netns exec h2 tcpdump -i veth2 -nn "tcp port 8080" > /tmp/lab01/tcpdump_h2.log 2>&1 &
    sleep 1
    ```
 3. Chạy tấn công từ `h1`:
@@ -189,6 +189,7 @@ sudo bash /tmp/lab01/setup_pair.sh
 
 ```bash
 sudo pkill -f ncat 2>/dev/null || true
+sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns del h1 2>/dev/null || true
 sudo ip netns del h2 2>/dev/null || true
 sudo rm -rf /tmp/lab01

@@ -107,7 +107,7 @@ sudo bash /tmp/lab04/setup_lan.sh
 
 1. Mở `tcpdump` trên nạn nhân (`vic`) để đón bắt các gói phản hồi:
    ```bash
-   sudo ip netns exec vic timeout 8 tcpdump -i vic0 -nn icmp > /tmp/lab04/tcpdump_vic_attack.log 2>&1 &
+   sudo ip netns exec vic tcpdump -i vic0 -nn icmp > /tmp/lab04/tcpdump_vic_attack.log 2>&1 &
    sleep 1
    ```
 2. Phát động tấn công từ `atk`:
@@ -133,7 +133,7 @@ sudo bash /tmp/lab04/setup_lan.sh
    ```
 2. Mở lại `tcpdump` trên `vic` và phát lại gói tin từ `atk`:
    ```bash
-   sudo ip netns exec vic timeout 6 tcpdump -i vic0 -nn icmp > /tmp/lab04/tcpdump_vic_defended.log 2>&1 &
+   sudo ip netns exec vic tcpdump -i vic0 -nn icmp > /tmp/lab04/tcpdump_vic_defended.log 2>&1 &
    sleep 1
    sudo ip netns exec atk python3 /tmp/lab04/smurf_attack.py
    sleep 2
@@ -149,6 +149,7 @@ sudo bash /tmp/lab04/setup_lan.sh
 ### 6. BƯỚC 5: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+sudo pkill -f tcpdump 2>/dev/null || true
 for ns in atk vic amp1 amp2 amp3; do sudo ip netns del $ns 2>/dev/null || true; done
 sudo ip link del br0 2>/dev/null || true
 sudo rm -rf /tmp/lab04

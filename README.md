@@ -14,13 +14,13 @@ Dự án triển khai và kiểm chứng toàn diện **7 bài thực hành an t
 
 | Mã Lab | Tên Bài Thực Hành | Mục Tiêu & Cơ Chế Trọng Tâm | Hướng Dẫn Nhanh | Trạng Thái |
 | :---: | :--- | :--- | :---: | :---: |
-| **LAB 01** | **TCP ISN Prediction & Blind Spoofing** | Dự đoán ISN, giả mạo bắt tay 3 bước TCP (RFC 6528). | [Xem Lab 01](docs/progress/LAB01/GET_STARTED.md) | `[x] Verified` |
-| **LAB 02** | **IP Source Routing Vulnerability** | Ép định tuyến bằng IP SSRR/LSRR, lọc gói IHL > 5. | [Xem Lab 02](docs/progress/LAB02/GET_STARTED.md) | `[x] Verified` |
-| **LAB 03** | **ICMP Tunneling (Covert Channel)** | Tạo kênh truyền ngầm tuồn dữ liệu qua ICMP payload, vượt firewall L4. | [Xem Lab 03](docs/progress/LAB03/GET_STARTED.md) | `[x] Verified` |
-| **LAB 04** | **Smurf Attack (Broadcast Amplification)** | Khuếch đại DoS directed broadcast ($K = \times 3$), chặn bằng sysctl. | [Xem Lab 04](docs/progress/LAB04/GET_STARTED.md) | `[x] Verified` |
-| **LAB 05** | **ICMP Redirect Attack (Route Hijacking)** | Bẻ lái định tuyến bằng ICMP Type 5 (FIB Nexthop Exception / MITM). | [Xem Lab 05](docs/progress/LAB05/GET_STARTED.md) | `[x] Verified` |
-| **LAB 06** | **Teardrop Attack (Fragment Overlap)** | Phân đoạn IP chồng lấn (CVE-1999-0015), kiểm tra SNMP `ReasmFails`. | [Xem Lab 06](docs/progress/LAB06/GET_STARTED.md) | `[x] Verified` |
-| **LAB 07** | **DNS Security Extensions (DNSSEC)** | BIND9 tự động ký ECDSA P-256, Unbound xác thực cờ `ad`, chặn bằng `SERVFAIL`. | [Xem Lab 07](docs/progress/LAB07/GET_STARTED.md) | `[x] Verified` |
+| **LAB 01** | **TCP ISN Prediction & Blind Spoofing** | Dự đoán ISN, giả mạo bắt tay 3 bước TCP (RFC 6528). | [Xem Lab 01](docs/progress/LAB01/lab1_GET_STARTED.md) | `[x] Verified` |
+| **LAB 02** | **IP Source Routing Vulnerability** | Ép định tuyến bằng IP SSRR/LSRR, lọc gói IHL > 5. | [Xem Lab 02](docs/progress/LAB02/lab2_GET_STARTED.md) | `[x] Verified` |
+| **LAB 03** | **ICMP Tunneling (Covert Channel)** | Tạo kênh truyền ngầm tuồn dữ liệu qua ICMP payload, vượt firewall L4. | [Xem Lab 03](docs/progress/LAB03/lab3_GET_STARTED.md) | `[x] Verified` |
+| **LAB 04** | **Smurf Attack (Broadcast Amplification)** | Khuếch đại DoS directed broadcast ($K = \times 3$), chặn bằng sysctl. | [Xem Lab 04](docs/progress/LAB04/lab4_GET_STARTED.md) | `[x] Verified` |
+| **LAB 05** | **ICMP Redirect Attack (Route Hijacking)** | Bẻ lái định tuyến bằng ICMP Type 5 (FIB Nexthop Exception / MITM). | [Xem Lab 05](docs/progress/LAB05/lab5_GET_STARTED.md) | `[x] Verified` |
+| **LAB 06** | **Teardrop Attack (Fragment Overlap)** | Phân đoạn IP chồng lấn (CVE-1999-0015), kiểm tra SNMP `ReasmFails`. | [Xem Lab 06](docs/progress/LAB06/lab6_GET_STARTED.md) | `[x] Verified` |
+| **LAB 07** | **DNS Security Extensions (DNSSEC)** | BIND9 tự động ký ECDSA P-256, Unbound xác thực cờ `ad`, chặn bằng `SERVFAIL`. | [Xem Lab 07](docs/progress/LAB07/lab7_GET_STARTED.md) | `[x] Verified` |
 
 ---
 
@@ -131,20 +131,20 @@ LabLoHongBaoMatTCPIP/
 │   │   ├── 06_lab6_strategy.md
 │   │   └── 07_lab7_strategy.md
 │   └── progress/                      # Mã nguồn, log thực nghiệm & hướng dẫn chạy từng bài
-│       ├── LAB01/ -> GET_STARTED.md, IMPLEMENTATION.md, lab1_result.md, scripts/
-│       ├── LAB02/ -> GET_STARTED.md, IMPLEMENTATION.md, lab2_result.md, scripts/
-│       ├── LAB03/ -> GET_STARTED.md, IMPLEMENTATION.md, lab3_result.md, scripts/
-│       ├── LAB04/ -> GET_STARTED.md, IMPLEMENTATION.md, lab4_result.md, scripts/
-│       ├── LAB05/ -> GET_STARTED.md, IMPLEMENTATION.md, lab5_result.md, scripts/
-│       ├── LAB06/ -> GET_STARTED.md, IMPLEMENTATION.md, lab6_result.md, scripts/
-│       └── LAB07/ -> GET_STARTED.md, IMPLEMENTATION.md, lab7_result.md, scripts/
+│       ├── LAB01/ -> lab1_GET_STARTED.md, IMPLEMENTATION.md, lab1_result.md, scripts/
+│       ├── LAB02/ -> lab2_GET_STARTED.md, IMPLEMENTATION.md, lab2_result.md, scripts/
+│       ├── LAB03/ -> lab3_GET_STARTED.md, IMPLEMENTATION.md, lab3_result.md, scripts/
+│       ├── LAB04/ -> lab4_GET_STARTED.md, IMPLEMENTATION.md, lab4_result.md, scripts/
+│       ├── LAB05/ -> lab5_GET_STARTED.md, IMPLEMENTATION.md, lab5_result.md, scripts/
+│       ├── LAB06/ -> lab6_GET_STARTED.md, IMPLEMENTATION.md, lab6_result.md, scripts/
+│       └── LAB07/ -> lab7_GET_STARTED.md, IMPLEMENTATION.md, lab7_result.md, scripts/
 ```
 
 ---
 
 ## 5. HƯỚNG DẪN THỰC HÀNH TỪNG BÀI LAB
 
-Mỗi thư mục trong `docs/progress/LAB0X/` đều chứa tệp **`GET_STARTED.md`** được chuẩn hóa theo đúng một quy trình duy nhất, phục vụ việc tự thực hành trực tiếp trong máy ảo:
+Mỗi thư mục trong `docs/progress/LAB0X/` đều chứa tệp **`labX_GET_STARTED.md`** được chuẩn hóa theo đúng một quy trình duy nhất, phục vụ việc tự thực hành trực tiếp trong máy ảo:
 1. **Mô hình topology & Bảng IP:** Sơ đồ mạng rõ ràng (`veth`, `br0`, namespaces).
 2. **Khởi tạo script trực tiếp:** Toàn bộ mã nguồn script được cung cấp sẵn dạng `cat << 'EOF' > /tmp/lab0X/...` (hoặc mở bằng `nano <tên_file>`) giúp copy-paste và sinh file cực nhanh ngay trong terminal.
 3. **Các bước chạy ngắn gọn:** Trình tự các lệnh thực thi, mở dịch vụ nền, chạy script và kích hoạt phòng thủ.
@@ -152,11 +152,11 @@ Mỗi thư mục trong `docs/progress/LAB0X/` đều chứa tệp **`GET_STARTED
 5. **Lệnh dọn dẹp:** Lệnh một dòng xóa sạch namespace, bridge và tiến trình nền.
 
 Truy cập nhanh hướng dẫn từng bài:
-- [HƯỚNG DẪN THỰC HÀNH LAB 01](docs/progress/LAB01/GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 02](docs/progress/LAB02/GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 03](docs/progress/LAB03/GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 04](docs/progress/LAB04/GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 05](docs/progress/LAB05/GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 06](docs/progress/LAB06/GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 07](docs/progress/LAB07/GET_STARTED.md)
+- [HƯỚNG DẪN THỰC HÀNH LAB 01](docs/progress/LAB01/lab1_GET_STARTED.md)
+- [HƯỚNG DẪN THỰC HÀNH LAB 02](docs/progress/LAB02/lab2_GET_STARTED.md)
+- [HƯỚNG DẪN THỰC HÀNH LAB 03](docs/progress/LAB03/lab3_GET_STARTED.md)
+- [HƯỚNG DẪN THỰC HÀNH LAB 04](docs/progress/LAB04/lab4_GET_STARTED.md)
+- [HƯỚNG DẪN THỰC HÀNH LAB 05](docs/progress/LAB05/lab5_GET_STARTED.md)
+- [HƯỚNG DẪN THỰC HÀNH LAB 06](docs/progress/LAB06/lab6_GET_STARTED.md)
+- [HƯỚNG DẪN THỰC HÀNH LAB 07](docs/progress/LAB07/lab7_GET_STARTED.md)
 

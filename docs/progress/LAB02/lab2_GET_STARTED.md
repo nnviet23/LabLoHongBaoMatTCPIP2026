@@ -103,12 +103,12 @@ sudo bash /tmp/lab02/setup_pair.sh
 
 1. Mở `tcpdump` trên `h1` để bắt gói tin phản hồi dội ngược về kẻ tấn công:
    ```bash
-   sudo ip netns exec h1 timeout 6 tcpdump -i veth1 -nn -v icmp > /tmp/lab02/tcpdump_h1.log 2>&1 &
+   sudo ip netns exec h1 tcpdump -i veth1 -nn -v icmp > /tmp/lab02/tcpdump_h1.log 2>&1 &
    sleep 1
    ```
 2. Mở song song `tcpdump` trên `h2` với bộ lọc BPF kiểm tra IP Options (`ip[0] & 0x0f > 5`):
    ```bash
-   sudo ip netns exec h2 timeout 6 tcpdump -i veth2 -nn "ip[0] & 0x0f > 5" > /tmp/lab02/tcpdump_h2_options.log 2>&1 &
+   sudo ip netns exec h2 tcpdump -i veth2 -nn "ip[0] & 0x0f > 5" > /tmp/lab02/tcpdump_h2_options.log 2>&1 &
    sleep 1
    ```
 3. Chạy script gửi gói tin SSRR từ `h1`:
@@ -145,7 +145,7 @@ sudo bash /tmp/lab02/setup_pair.sh
    ```
 2. Mở lại tcpdump trên `h1` và gửi lại gói SSRR:
    ```bash
-   sudo ip netns exec h1 timeout 4 tcpdump -i veth1 -nn icmp > /tmp/lab02/tcpdump_defended.log 2>&1 &
+   sudo ip netns exec h1 tcpdump -i veth1 -nn icmp > /tmp/lab02/tcpdump_defended.log 2>&1 &
    sleep 1
    sudo ip netns exec h1 python3 /tmp/lab02/ssrr.py
    sleep 2
@@ -161,6 +161,7 @@ sudo bash /tmp/lab02/setup_pair.sh
 ### 7. BƯỚC 6: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns del h1 2>/dev/null || true
 sudo ip netns del h2 2>/dev/null || true
 sudo rm -rf /tmp/lab02

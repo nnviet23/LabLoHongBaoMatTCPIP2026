@@ -125,7 +125,7 @@ sudo ip netns exec vic ip route get 10.0.1.5
    ```
 2. Mở `tcpdump` trên `atk0` đón bắt lưu lượng bị bẻ lái:
    ```bash
-   sudo ip netns exec atk timeout 8 tcpdump -i atk0 -nn host 10.0.1.5 > /tmp/lab05/tcpdump_mitm.log 2>&1 &
+   sudo ip netns exec atk tcpdump -i atk0 -nn host 10.0.1.5 > /tmp/lab05/tcpdump_mitm.log 2>&1 &
    sleep 1
    ```
 3. Mở một socket UDP trên `vic` (chạy ngầm trong 2s) và tiêm gói ICMP Redirect từ `atk`:
@@ -185,6 +185,7 @@ sudo ip netns exec vic ip route get 10.0.1.5
 ### 6. BƯỚC 5: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+sudo pkill -f tcpdump 2>/dev/null || true
 for ns in vic gw atk dst; do sudo ip netns del $ns 2>/dev/null || true; done
 sudo ip link del br0 2>/dev/null || true
 sudo rm -rf /tmp/lab05

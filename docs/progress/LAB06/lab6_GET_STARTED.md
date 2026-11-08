@@ -92,7 +92,7 @@ EOF
 
 1. Mở `tcpdump` trên `h2` (`veth2`) để bắt các mảnh IP đến:
    ```bash
-   sudo ip netns exec h2 timeout 8 tcpdump -i veth2 -nn -v ip > /tmp/lab06/tcpdump_frag.log 2>&1 &
+   sudo ip netns exec h2 tcpdump -i veth2 -nn -v ip > /tmp/lab06/tcpdump_frag.log 2>&1 &
    sleep 1
    ```
 2. Mở một luồng ping kiểm tra sức sống liên tục từ `h2` về `h1` (gửi 10 gói, cách nhau 0.3s):
@@ -144,6 +144,7 @@ EOF
 ### 6. BƯỚC 5: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns del h1 2>/dev/null || true
 sudo ip netns del h2 2>/dev/null || true
 sudo rm -rf /tmp/lab06

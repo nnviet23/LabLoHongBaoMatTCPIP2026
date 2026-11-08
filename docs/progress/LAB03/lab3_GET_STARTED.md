@@ -129,7 +129,7 @@ sudo bash /tmp/lab03/setup_pair.sh
    ```
 2. Mở `tcpdump` trên `h2` với cờ `-A` để bắt và đọc rõ payload ASCII:
    ```bash
-   sudo ip netns exec h2 timeout 6 tcpdump -i veth2 -nn -A icmp > /tmp/lab03/tcpdump_payload.log 2>&1 &
+   sudo ip netns exec h2 tcpdump -i veth2 -nn -A icmp > /tmp/lab03/tcpdump_payload.log 2>&1 &
    sleep 1
    ```
 3. Chạy Client trên `h1` để tuồn chuỗi dữ liệu `tainbow`:
@@ -180,6 +180,7 @@ sudo bash /tmp/lab03/setup_pair.sh
 
 ```bash
 sudo pkill -f icmp_server.py 2>/dev/null || true
+sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns exec h2 iptables -F 2>/dev/null || true
 sudo ip netns del h1 2>/dev/null || true
 sudo ip netns del h2 2>/dev/null || true
