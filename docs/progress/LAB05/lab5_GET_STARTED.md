@@ -9,6 +9,13 @@
   - Subnet LAN `10.0.0.0/24` (trên `br0`): `vic` (`10.0.0.2`), `gw` (`10.0.0.1`), `atk` (`10.0.0.66`).
   - Subnet WAN `10.0.1.0/24`: Router `gw` (`10.0.1.254`) nối với máy chủ đích `dst` (`10.0.1.5`).
 
+> 💡 **Quy ước thực thi lệnh:**
+> - `[VICTIM - vic]`: Lệnh chạy trong namespace nạn nhân (tiền tố `ip netns exec vic`).
+> - `[ATTACKER - atk]`: Lệnh chạy trong namespace kẻ tấn công (tiền tố `ip netns exec atk`).
+> - `[ROUTER / GATEWAY - gw]`: Lệnh chạy trên router biên (tiền tố `ip netns exec gw`).
+> - `[MÁY CHỦ ĐÍCH - dst]`: Lệnh chạy trên máy chủ đích (tiền tố `ip netns exec dst`).
+> - `[HOST / CHUNG]`: Lệnh chạy trực tiếp trên máy ảo Kali.
+
 ---
 
 ### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC SCRIPT
@@ -108,9 +115,10 @@ EOF
 ### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG & XÁC NHẬN BASELINE ROUTE
 
 ```bash
+# [HOST / CHUNG] Thiết lập topology mạng LAN bridge & WAN
 sudo bash /tmp/lab05/setup_redirect.sh
 
-# Kiểm tra đường đi ban đầu trên vic:
+# [VICTIM - vic] Kiểm tra đường đi ban đầu trên vic:
 sudo ip netns exec vic ip route get 10.0.1.5
 # Kỳ vọng: via 10.0.0.1 dev vic0
 ```
@@ -119,17 +127,18 @@ sudo ip netns exec vic ip route get 10.0.1.5
 
 ### 4. BƯỚC 3: PHÁT ĐỘNG TẤN CÔNG & BẺ LÁI ĐỊNH TUYẾN
 
-1. Bật IP Forwarding trên `atk` để đóng vai trò Man-in-the-Middle:
+1. **[ATTACKER - atk]** Bật IP Forwarding trên `atk` để đóng vai trò Man-in-the-Middle:
    ```bash
    sudo ip netns exec atk sysctl -w net.ipv4.ip_forward=1
    ```
-2. Mở `tcpdump` trên `atk0` đón bắt lưu lượng bị bẻ lái:
+2. **[ATTACKER - atk]** Mở `tcpdump` trên `atk0` đón bắt lưu lượng bị bẻ lái:
    ```bash
    sudo ip netns exec atk tcpdump -i atk0 -nn host 10.0.1.5 > /tmp/lab05/tcpdump_mitm.log 2>&1 &
    sleep 1
    ```
-3. Mở một socket UDP trên `vic` (chạy ngầm trong 2s) và tiêm gói ICMP Redirect từ `atk`:
+3. **[VICTIM / ATTACKER]** Mở một socket UDP trên `vic` (chạy ngầm trong 2s) và tiêm gói ICMP Redirect từ `atk`:
    ```bash
+   # [VICTIM - vic]
    sudo ip netns exec vic python3 -c '
    import socket, time
    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -139,10 +148,11 @@ sudo ip netns exec vic ip route get 10.0.1.5
    time.sleep(1.5)
    ' &
    sleep 0.3
+   # [ATTACKER - atk]
    sudo ip netns exec atk python3 /tmp/lab05/send_redirect.py
    sleep 1
    ```
-4. Kiểm tra bảng định tuyến trên `vic` ngay sau khi tiêm gói:
+4. **[VICTIM - vic]** Kiểm tra bảng định tuyến trên `vic` ngay sau khi tiêm gói:
    ```bash
    sudo ip netns exec vic ip route get 10.0.1.5
    ```
@@ -150,10 +160,12 @@ sudo ip netns exec vic ip route get 10.0.1.5
    > `10.0.1.5 via 10.0.0.66 dev vic0 src 10.0.0.2 cache <redirected> expires 295sec`.  
    > Toàn bộ lưu lượng đã bị ép chuyển hướng qua máy `10.0.0.66`!
 
-5. Từ `vic`, gửi ping thử tới `10.0.1.5` để quan sát lưu lượng chảy qua attacker:
+5. **[VICTIM / ATTACKER]** Từ `vic`, gửi ping thử tới `10.0.1.5` để quan sát lưu lượng chảy qua attacker:
    ```bash
+   # [VICTIM - vic]
    sudo ip netns exec vic ping -c 2 10.0.1.5
    sleep 2
+   # [ATTACKER - atk]
    cat /tmp/lab05/tcpdump_mitm.log
    ```
    > **Quan sát:** `atk0` bắt trọn các gói tin ICMP của nạn nhân gửi tới `10.0.1.5`.
@@ -162,19 +174,19 @@ sudo ip netns exec vic ip route get 10.0.1.5
 
 ### 5. BƯỚC 4: KÍCH HOẠT PHÒNG THỦ & KIỂM CHỨNG LẠI
 
-1. Tắt tính năng chấp nhận ICMP Redirect trên `vic` và xóa cache bị nhiễm độc:
+1. **[VICTIM - vic]** Tắt tính năng chấp nhận ICMP Redirect trên `vic` và xóa cache bị nhiễm độc:
    ```bash
    for k in all default vic0; do
        sudo ip netns exec vic sysctl -w net.ipv4.conf.$k.accept_redirects=0
    done
    sudo ip netns exec vic ip route flush cache
    ```
-2. Tiêm lại gói ICMP Redirect từ `atk`:
+2. **[ATTACKER - atk]** Tiêm lại gói ICMP Redirect từ `atk`:
    ```bash
    sudo ip netns exec atk python3 /tmp/lab05/send_redirect.py
    sleep 1
    ```
-3. Kiểm tra lại bảng định tuyến của `vic`:
+3. **[VICTIM - vic]** Kiểm tra lại bảng định tuyến của `vic`:
    ```bash
    sudo ip netns exec vic ip route get 10.0.1.5
    ```
@@ -185,6 +197,7 @@ sudo ip netns exec vic ip route get 10.0.1.5
 ### 6. BƯỚC 5: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+# [HOST / CHUNG] Tắt tiến trình nền và xóa môi trường lab
 sudo pkill -f tcpdump 2>/dev/null || true
 for ns in vic gw atk dst; do sudo ip netns del $ns 2>/dev/null || true; done
 sudo ip link del br0 2>/dev/null || true

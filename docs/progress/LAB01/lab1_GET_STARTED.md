@@ -10,6 +10,11 @@
   - `h2`: `10.0.0.2/24` (Victim Server) trên `veth2`
   - Địa chỉ giả mạo (Spoofed IP): `10.0.0.77`
 
+> 💡 **Quy ước thực thi lệnh:**
+> - `[VICTIM - h2]`: Lệnh chạy trong namespace nạn nhân (tiền tố `ip netns exec h2`).
+> - `[ATTACKER - h1]`: Lệnh chạy trong namespace kẻ tấn công (tiền tố `ip netns exec h1`).
+> - `[HOST / CHUNG]`: Lệnh chạy trực tiếp trên máy ảo Kali.
+
 ---
 
 ### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC SCRIPT
@@ -128,6 +133,7 @@ EOF
 ### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG
 
 ```bash
+# [HOST / CHUNG] Thiết lập topology h1 <-> h2
 sudo bash /tmp/lab01/setup_pair.sh
 ```
 
@@ -135,12 +141,12 @@ sudo bash /tmp/lab01/setup_pair.sh
 
 ### 4. BƯỚC 3: THU THẬP & ĐÁNH GIÁ ĐỘ NGẪU NHIÊN CỦA ISN
 
-1. Mở dịch vụ ncat trên `h2` cổng 9000:
+1. **[VICTIM - h2]** Mở dịch vụ ncat trên cổng 9000:
    ```bash
    sudo ip netns exec h2 ncat -lvk -p 9000 >/dev/null 2>&1 &
    NCAT_SAMPLER_PID=$!
    ```
-2. Chạy lấy mẫu 30 ISN từ `h1`:
+2. **[ATTACKER - h1]** Chạy lấy mẫu 30 ISN gửi tới Victim:
    ```bash
    sudo ip netns exec h1 python3 /tmp/lab01/isn_sampler.py
    sudo kill $NCAT_SAMPLER_PID 2>/dev/null || true
@@ -151,17 +157,17 @@ sudo bash /tmp/lab01/setup_pair.sh
 
 ### 5. BƯỚC 4: THỰC HIỆN TẤN CÔNG BẮT TAY GIẢ MẠO (SPOOFING)
 
-1. Mở dịch vụ nhận dữ liệu trên `h2` cổng 8080:
+1. **[VICTIM - h2]** Mở dịch vụ nhận dữ liệu trên cổng 8080:
    ```bash
    sudo ip netns exec h2 ncat -lvk -p 8080 > /tmp/lab01/ncat_server.log 2>&1 &
    NCAT_PID=$!
    ```
-2. Mở tcpdump trên `h2` để ghi nhận gói tin:
+2. **[VICTIM - h2]** Mở tcpdump trên giao diện `veth2` để ghi nhận gói tin:
    ```bash
    sudo ip netns exec h2 tcpdump -i veth2 -nn "tcp port 8080" > /tmp/lab01/tcpdump_h2.log 2>&1 &
    sleep 1
    ```
-3. Chạy tấn công từ `h1`:
+3. **[ATTACKER - h1]** Chạy script tấn công giả mạo bắt tay 3 bước từ IP `10.0.0.77`:
    ```bash
    sudo ip netns exec h1 python3 /tmp/lab01/spoof_sniff.py
    sleep 2
@@ -171,13 +177,13 @@ sudo bash /tmp/lab01/setup_pair.sh
 
 ### 6. BƯỚC 5: KIỂM CHỨNG KẾT QUẢ
 
-1. Kiểm tra log ncat trên nạn nhân:
+1. **[VICTIM - h2]** Kiểm tra log ncat trên nạn nhân:
    ```bash
    cat /tmp/lab01/ncat_server.log
    ```
    *Kỳ vọng:* Hiển thị kết nối từ `10.0.0.77` và nhận được chuỗi `hello-from-spoofed-source`.
 
-2. Kiểm tra log bắt gói tcpdump:
+2. **[VICTIM - h2]** Kiểm tra log bắt gói tcpdump:
    ```bash
    cat /tmp/lab01/tcpdump_h2.log
    ```
@@ -188,6 +194,7 @@ sudo bash /tmp/lab01/setup_pair.sh
 ### 7. BƯỚC 6: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+# [HOST / CHUNG] Tắt tiến trình nền và xóa namespaces
 sudo pkill -f ncat 2>/dev/null || true
 sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns del h1 2>/dev/null || true

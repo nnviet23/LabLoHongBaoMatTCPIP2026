@@ -10,6 +10,12 @@
   - `vic`: `10.0.0.200/24` (Victim)
   - `amp1`, `amp2`, `amp3`: `10.0.0.11`, `10.0.0.12`, `10.0.0.13` (3 trạm khuếch đại)
 
+> 💡 **Quy ước thực thi lệnh:**
+> - `[VICTIM - vic]`: Lệnh chạy trong namespace nạn nhân (tiền tố `ip netns exec vic`).
+> - `[ATTACKER - atk]`: Lệnh chạy trong namespace kẻ tấn công (tiền tố `ip netns exec atk`).
+> - `[MÁY KHUẾCH ĐẠI - amp1/2/3]`: Lệnh cấu hình trên 3 trạm khuếch đại (tiền tố `ip netns exec ampX`).
+> - `[HOST / CHUNG]`: Lệnh chạy trực tiếp trên máy ảo Kali.
+
 ---
 
 ### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC SCRIPT
@@ -98,6 +104,7 @@ EOF
 ### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG
 
 ```bash
+# [HOST / CHUNG] Thiết lập topology mạng LAN bridge br0
 sudo bash /tmp/lab04/setup_lan.sh
 ```
 
@@ -105,17 +112,17 @@ sudo bash /tmp/lab04/setup_lan.sh
 
 ### 4. BƯỚC 3: PHÁT ĐỘNG TẤN CÔNG & ĐO LƯỜNG HỆ SỐ KHUẾCH ĐẠI
 
-1. Mở `tcpdump` trên nạn nhân (`vic`) để đón bắt các gói phản hồi:
+1. **[VICTIM - vic]** Mở `tcpdump` trên nạn nhân (`vic`) để đón bắt các gói phản hồi:
    ```bash
    sudo ip netns exec vic tcpdump -i vic0 -nn icmp > /tmp/lab04/tcpdump_vic_attack.log 2>&1 &
    sleep 1
    ```
-2. Phát động tấn công từ `atk`:
+2. **[ATTACKER - atk]** Phát động tấn công từ `atk`:
    ```bash
    sudo ip netns exec atk python3 /tmp/lab04/smurf_attack.py
    sleep 3
    ```
-3. Đếm số lượng gói Echo Reply nhận được tại nạn nhân:
+3. **[VICTIM - vic]** Đếm số lượng gói Echo Reply nhận được tại nạn nhân:
    ```bash
    grep "echo reply" /tmp/lab04/tcpdump_vic_attack.log | wc -l
    ```
@@ -125,20 +132,20 @@ sudo bash /tmp/lab04/setup_lan.sh
 
 ### 5. BƯỚC 4: KÍCH HOẠT PHÒNG THỦ & TÁI KIỂM CHỨNG
 
-1. Bật cơ chế phòng vệ bỏ qua ping broadcast trên 3 máy khuếch đại:
+1. **[MÁY KHUẾCH ĐẠI - amp1/2/3]** Bật cơ chế phòng vệ bỏ qua ping broadcast trên 3 máy khuếch đại:
    ```bash
    for h in amp1 amp2 amp3; do
        sudo ip netns exec $h sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1
    done
    ```
-2. Mở lại `tcpdump` trên `vic` và phát lại gói tin từ `atk`:
+2. **[ATTACKER / VICTIM]** Mở lại `tcpdump` trên `vic` và phát lại gói tin từ `atk`:
    ```bash
    sudo ip netns exec vic tcpdump -i vic0 -nn icmp > /tmp/lab04/tcpdump_vic_defended.log 2>&1 &
    sleep 1
    sudo ip netns exec atk python3 /tmp/lab04/smurf_attack.py
    sleep 2
    ```
-3. Đếm số lượng gói Echo Reply sau phòng thủ:
+3. **[VICTIM - vic]** Đếm số lượng gói Echo Reply sau phòng thủ:
    ```bash
    grep "echo reply" /tmp/lab04/tcpdump_vic_defended.log | wc -l
    ```
@@ -149,6 +156,7 @@ sudo bash /tmp/lab04/setup_lan.sh
 ### 6. BƯỚC 5: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+# [HOST / CHUNG] Tắt tiến trình nền và xóa mạng LAN bridge
 sudo pkill -f tcpdump 2>/dev/null || true
 for ns in atk vic amp1 amp2 amp3; do sudo ip netns del $ns 2>/dev/null || true; done
 sudo ip link del br0 2>/dev/null || true

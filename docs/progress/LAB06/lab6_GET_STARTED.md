@@ -9,6 +9,11 @@
   - `h1`: `10.0.0.1/24` (Attacker) trên `veth1`
   - `h2`: `10.0.0.2/24` (Victim) trên `veth2`
 
+> 💡 **Quy ước thực thi lệnh:**
+> - `[VICTIM - h2]`: Lệnh chạy trong namespace nạn nhân (tiền tố `ip netns exec h2`).
+> - `[ATTACKER - h1]`: Lệnh chạy trong namespace kẻ tấn công (tiền tố `ip netns exec h1`).
+> - `[HOST / CHUNG]`: Lệnh chạy trực tiếp trên máy ảo Kali.
+
 ---
 
 ### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC SCRIPT
@@ -76,11 +81,11 @@ EOF
 
 ### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG & GHI NHẬN BASELINE SNMP
 
-1. Chạy setup:
+1. **[HOST / CHUNG]** Chạy setup:
    ```bash
    sudo bash /tmp/lab06/setup_pair.sh
    ```
-2. Ghi nhận thống kê tái hợp mảnh IP trước khi gửi gói độc hại:
+2. **[VICTIM - h2]** Ghi nhận thống kê tái hợp mảnh IP trước khi gửi gói độc hại:
    ```bash
    sudo ip netns exec h2 sh -c "cat /proc/net/snmp | grep -A1 '^Ip:'"
    ```
@@ -90,17 +95,17 @@ EOF
 
 ### 4. BƯỚC 3: PHÁT ĐỘNG TẤN CÔNG & GIÁM SÁT SỨC SỐNG
 
-1. Mở `tcpdump` trên `h2` (`veth2`) để bắt các mảnh IP đến:
+1. **[VICTIM - h2]** Mở `tcpdump` trên `h2` (`veth2`) để bắt các mảnh IP đến:
    ```bash
    sudo ip netns exec h2 tcpdump -i veth2 -nn -v ip > /tmp/lab06/tcpdump_frag.log 2>&1 &
    sleep 1
    ```
-2. Mở một luồng ping kiểm tra sức sống liên tục từ `h2` về `h1` (gửi 10 gói, cách nhau 0.3s):
+2. **[VICTIM - h2]** Mở một luồng ping kiểm tra sức sống liên tục từ `h2` về `h1` (gửi 10 gói, cách nhau 0.3s):
    ```bash
    sudo ip netns exec h2 ping -i 0.3 -c 10 10.0.0.1 > /tmp/lab06/ping_health.log 2>&1 &
    sleep 1
    ```
-3. Phát động gửi các mảnh Teardrop từ `h1`:
+3. **[ATTACKER - h1]** Phát động gửi các mảnh Teardrop từ `h1`:
    ```bash
    sudo ip netns exec h1 python3 /tmp/lab06/teardrop.py
    sleep 3
@@ -110,7 +115,7 @@ EOF
 
 ### 5. BƯỚC 4: KIỂM CHỨNG KẾT QUẢ
 
-1. Kiểm tra log bắt gói `tcpdump`:
+1. **[HOST / CHUNG]** Kiểm tra log bắt gói `tcpdump`:
    ```bash
    cat /tmp/lab06/tcpdump_frag.log | grep "id 1234"
    ```
@@ -118,13 +123,13 @@ EOF
    - Mảnh 1: `id 1234, offset 0, flags [+]` (MF=1).
    - Mảnh 2: `id 1234, offset 8, flags [none]` (MF=0).
 
-2. Kiểm tra sức sống của nạn nhân:
+2. **[HOST / CHUNG]** Kiểm tra sức sống của nạn nhân:
    ```bash
    cat /tmp/lab06/ping_health.log | tail -n 3
    ```
    *Kỳ vọng:* `10 packets transmitted, 10 received, 0% packet loss` (Nạn nhân hoàn toàn khỏe mạnh, không bị treo hay crash).
 
-3. Kiểm tra biến đếm SNMP sau tấn công:
+3. **[VICTIM - h2]** Kiểm tra biến đếm SNMP sau tấn công:
    ```bash
    sudo ip netns exec h2 sh -c "cat /proc/net/snmp | grep -A1 '^Ip:'"
    ```
@@ -133,7 +138,7 @@ EOF
    - `ReasmOKs`: Giữ nguyên **0** (không ráp được gói hỏng).
    - `ReasmFails`: Tăng lên **1** (Kernel phát hiện chồng lấn bất thường và drop an toàn).
 
-4. Kiểm tra nhật ký nhân Linux:
+4. **[HOST / CHUNG]** Kiểm tra nhật ký nhân Linux:
    ```bash
    dmesg | tail -n 10
    ```
@@ -144,6 +149,7 @@ EOF
 ### 6. BƯỚC 5: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+# [HOST / CHUNG] Tắt tiến trình nền và xóa namespaces
 sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns del h1 2>/dev/null || true
 sudo ip netns del h2 2>/dev/null || true

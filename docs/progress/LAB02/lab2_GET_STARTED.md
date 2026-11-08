@@ -10,6 +10,11 @@
   - `h2`: `10.0.0.2/24` (Victim) trên `veth2`
   - Địa chỉ giả mạo (Spoofed IP): `10.0.0.77`
 
+> 💡 **Quy ước thực thi lệnh:**
+> - `[VICTIM - h2]`: Lệnh chạy trong namespace nạn nhân (tiền tố `ip netns exec h2`).
+> - `[ATTACKER - h1]`: Lệnh chạy trong namespace kẻ tấn công (tiền tố `ip netns exec h1`).
+> - `[HOST / CHUNG]`: Lệnh chạy trực tiếp trên máy ảo Kali.
+
 ---
 
 ### 2. BƯỚC 1: KHỞI TẠO THƯ MỤC VÀ TẠO CÁC SCRIPT
@@ -94,6 +99,7 @@ EOF
 ### 3. BƯỚC 2: CHẠY THIẾT LẬP MẠNG
 
 ```bash
+# [HOST / CHUNG] Thiết lập topology h1 <-> h2
 sudo bash /tmp/lab02/setup_pair.sh
 ```
 
@@ -101,17 +107,17 @@ sudo bash /tmp/lab02/setup_pair.sh
 
 ### 4. BƯỚC 3: PHÁT ĐỘNG TẤN CÔNG & BẮT GÓI PHẢN HỒI
 
-1. Mở `tcpdump` trên `h1` để bắt gói tin phản hồi dội ngược về kẻ tấn công:
+1. **[ATTACKER - h1]** Mở `tcpdump` trên `h1` để bắt gói tin phản hồi dội ngược về kẻ tấn công:
    ```bash
    sudo ip netns exec h1 tcpdump -i veth1 -nn -v icmp > /tmp/lab02/tcpdump_h1.log 2>&1 &
    sleep 1
    ```
-2. Mở song song `tcpdump` trên `h2` với bộ lọc BPF kiểm tra IP Options (`ip[0] & 0x0f > 5`):
+2. **[VICTIM - h2]** Mở song song `tcpdump` trên `h2` với bộ lọc BPF kiểm tra IP Options (`ip[0] & 0x0f > 5`):
    ```bash
    sudo ip netns exec h2 tcpdump -i veth2 -nn "ip[0] & 0x0f > 5" > /tmp/lab02/tcpdump_h2_options.log 2>&1 &
    sleep 1
    ```
-3. Chạy script gửi gói tin SSRR từ `h1`:
+3. **[ATTACKER - h1]** Chạy script gửi gói tin SSRR từ `h1`:
    ```bash
    sudo ip netns exec h1 python3 /tmp/lab02/ssrr.py
    sleep 2
@@ -121,13 +127,13 @@ sudo bash /tmp/lab02/setup_pair.sh
 
 ### 5. BƯỚC 4: KIỂM CHỨNG KẾT QUẢ
 
-1. Kiểm tra log bắt gói trên kẻ tấn công (`h1`):
+1. **[ATTACKER - h1]** Kiểm tra log bắt gói trên kẻ tấn công (`h1`):
    ```bash
    cat /tmp/lab02/tcpdump_h1.log
    ```
    *Kỳ vọng:* Thấy gói Echo Request gửi từ `10.0.0.77 > 10.0.0.2` kèm `SSRR{10.0.0.1, 10.0.0.2}`, và sau đó nhận được gói Echo Reply dội về địa chỉ thật của kẻ tấn công `10.0.0.1`!
 
-2. Kiểm tra bộ lọc BPF bắt gói IP Options trên nạn nhân (`h2`):
+2. **[VICTIM - h2]** Kiểm tra bộ lọc BPF bắt gói IP Options trên nạn nhân (`h2`):
    ```bash
    cat /tmp/lab02/tcpdump_h2_options.log
    ```
@@ -137,20 +143,20 @@ sudo bash /tmp/lab02/setup_pair.sh
 
 ### 6. BƯỚC 5: KÍCH HOẠT PHÒNG THỦ & KIỂM CHỨNG LẠI
 
-1. Tắt tính năng chấp nhận Source Route trên `h2`:
+1. **[VICTIM - h2]** Tắt tính năng chấp nhận Source Route trên `h2`:
    ```bash
    for dev in all default lo veth2; do
        sudo ip netns exec h2 sysctl -w net.ipv4.conf.$dev.accept_source_route=0
    done
    ```
-2. Mở lại tcpdump trên `h1` và gửi lại gói SSRR:
+2. **[ATTACKER - h1]** Mở lại tcpdump trên `h1` và gửi lại gói SSRR:
    ```bash
    sudo ip netns exec h1 tcpdump -i veth1 -nn icmp > /tmp/lab02/tcpdump_defended.log 2>&1 &
    sleep 1
    sudo ip netns exec h1 python3 /tmp/lab02/ssrr.py
    sleep 2
    ```
-3. Đọc log kiểm tra:
+3. **[ATTACKER - h1]** Đọc log kiểm tra:
    ```bash
    cat /tmp/lab02/tcpdump_defended.log
    ```
@@ -161,6 +167,7 @@ sudo bash /tmp/lab02/setup_pair.sh
 ### 7. BƯỚC 6: DỌN DẸP MÔI TRƯỜNG
 
 ```bash
+# [HOST / CHUNG] Tắt tiến trình nền và xóa namespaces
 sudo pkill -f tcpdump 2>/dev/null || true
 sudo ip netns del h1 2>/dev/null || true
 sudo ip netns del h2 2>/dev/null || true
