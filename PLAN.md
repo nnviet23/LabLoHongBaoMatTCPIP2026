@@ -50,6 +50,6 @@
    - Chạy kịch bản tấn công và thu thập log kết quả thực tế (stdout, stderr, pcap/tcpdump text).
 4. **Giai đoạn 3: Tổng hợp báo cáo & Đóng gói minh chứng**
    - Ghi nhận output terminal thực tế vào `docs/progress/LAB0X/labX_result.md`.
-   - Viết tài liệu phân tích chi tiết vào `docs/progress/LAB0X/IMPLEMENTATION.md`.
+   - Viết tài liệu phân tích chi tiết vào `docs/progress/LAB0X/labX_IMPLEMENTATION.md`.
    - Dọn dẹp sạch sẽ môi trường lab trên Kali VM và cập nhật trạng thái `PLAN.md`.
 

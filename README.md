@@ -131,32 +131,29 @@ LabLoHongBaoMatTCPIP/
 │   │   ├── 06_lab6_strategy.md
 │   │   └── 07_lab7_strategy.md
 │   └── progress/                      # Mã nguồn, log thực nghiệm & hướng dẫn chạy từng bài
-│       ├── LAB01/ -> lab1_GET_STARTED.md, IMPLEMENTATION.md, lab1_result.md, scripts/
-│       ├── LAB02/ -> lab2_GET_STARTED.md, IMPLEMENTATION.md, lab2_result.md, scripts/
-│       ├── LAB03/ -> lab3_GET_STARTED.md, IMPLEMENTATION.md, lab3_result.md, scripts/
-│       ├── LAB04/ -> lab4_GET_STARTED.md, IMPLEMENTATION.md, lab4_result.md, scripts/
-│       ├── LAB05/ -> lab5_GET_STARTED.md, IMPLEMENTATION.md, lab5_result.md, scripts/
-│       ├── LAB06/ -> lab6_GET_STARTED.md, IMPLEMENTATION.md, lab6_result.md, scripts/
-│       └── LAB07/ -> lab7_GET_STARTED.md, IMPLEMENTATION.md, lab7_result.md, scripts/
+│       ├── LAB01/ -> lab1_GET_STARTED.md, lab1_IMPLEMENTATION.md, lab1_result.md, scripts/
+│       ├── LAB02/ -> lab2_GET_STARTED.md, lab2_IMPLEMENTATION.md, lab2_result.md, scripts/
+│       ├── LAB03/ -> lab3_GET_STARTED.md, lab3_IMPLEMENTATION.md, lab3_result.md, scripts/
+│       ├── LAB04/ -> lab4_GET_STARTED.md, lab4_IMPLEMENTATION.md, lab4_result.md, scripts/
+│       ├── LAB05/ -> lab5_GET_STARTED.md, lab5_IMPLEMENTATION.md, lab5_result.md, scripts/
+│       ├── LAB06/ -> lab6_GET_STARTED.md, lab6_IMPLEMENTATION.md, lab6_result.md, scripts/
+│       └── LAB07/ -> lab7_GET_STARTED.md, lab7_IMPLEMENTATION.md, lab7_result.md, scripts/
 ```
 
 ---
 
 ## 5. HƯỚNG DẪN THỰC HÀNH TỪNG BÀI LAB
 
-Mỗi thư mục trong `docs/progress/LAB0X/` đều chứa tệp **`labX_GET_STARTED.md`** được chuẩn hóa theo đúng một quy trình duy nhất, phục vụ việc tự thực hành trực tiếp trong máy ảo:
-1. **Mô hình topology & Bảng IP:** Sơ đồ mạng rõ ràng (`veth`, `br0`, namespaces).
-2. **Khởi tạo script trực tiếp:** Toàn bộ mã nguồn script được cung cấp sẵn dạng `cat << 'EOF' > /tmp/lab0X/...` (hoặc mở bằng `nano <tên_file>`) giúp copy-paste và sinh file cực nhanh ngay trong terminal.
-3. **Các bước chạy ngắn gọn:** Trình tự các lệnh thực thi, mở dịch vụ nền, chạy script và kích hoạt phòng thủ.
-4. **Tiêu chí & Quan sát:** Hướng dẫn xem log (`cat`, `grep`, `tcpdump`, `dig`) và đối chiếu với kết quả kỳ vọng.
-5. **Lệnh dọn dẹp:** Lệnh một dòng xóa sạch namespace, bridge và tiến trình nền.
+Mỗi thư mục trong `docs/progress/LAB0X/` đều chứa 2 tài liệu hoàn chỉnh phục vụ tự học và thực hành:
+- **`labX_GET_STARTED.md`**: Bản hướng dẫn nhanh, ngắn gọn với các lệnh copy-paste trực tiếp (`cat << 'EOF'`, `tcpdump`, `python3`), chú thích rõ từng vai trò (`[VICTIM]`, `[ATTACKER]`, `[HOST]`).
+- **`labX_IMPLEMENTATION.md`**: Bản hướng dẫn chuyên sâu phân tích kỹ thuật, bám sát cấu trúc của `labX_GET_STARTED.md`, giải thích chi tiết ý nghĩa đặt tên script, mục đích, cú pháp và các cờ lệnh quan trọng, đồng thời móc nối chặt chẽ với lý thuyết (RFC standards).
 
-Truy cập nhanh hướng dẫn từng bài:
-- [HƯỚNG DẪN THỰC HÀNH LAB 01](docs/progress/LAB01/lab1_GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 02](docs/progress/LAB02/lab2_GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 03](docs/progress/LAB03/lab3_GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 04](docs/progress/LAB04/lab4_GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 05](docs/progress/LAB05/lab5_GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 06](docs/progress/LAB06/lab6_GET_STARTED.md)
-- [HƯỚNG DẪN THỰC HÀNH LAB 07](docs/progress/LAB07/lab7_GET_STARTED.md)
+Truy cập nhanh tài liệu từng bài:
+- **Lab 01:** [Hướng Dẫn Thực Hành (Quick Start)](docs/progress/LAB01/lab1_GET_STARTED.md) | [Phân Tích Kỹ Thuật Chi Tiết](docs/progress/LAB01/lab1_IMPLEMENTATION.md)
+- **Lab 02:** [Hướng Dẫn Thực Hành (Quick Start)](docs/progress/LAB02/lab2_GET_STARTED.md) | [Phân Tích Kỹ Thuật Chi Tiết](docs/progress/LAB02/lab2_IMPLEMENTATION.md)
+- **Lab 03:** [Hướng Dẫn Thực Hành (Quick Start)](docs/progress/LAB03/lab3_GET_STARTED.md) | [Phân Tích Kỹ Thuật Chi Tiết](docs/progress/LAB03/lab3_IMPLEMENTATION.md)
+- **Lab 04:** [Hướng Dẫn Thực Hành (Quick Start)](docs/progress/LAB04/lab4_GET_STARTED.md) | [Phân Tích Kỹ Thuật Chi Tiết](docs/progress/LAB04/lab4_IMPLEMENTATION.md)
+- **Lab 05:** [Hướng Dẫn Thực Hành (Quick Start)](docs/progress/LAB05/lab5_GET_STARTED.md) | [Phân Tích Kỹ Thuật Chi Tiết](docs/progress/LAB05/lab5_IMPLEMENTATION.md)
+- **Lab 06:** [Hướng Dẫn Thực Hành (Quick Start)](docs/progress/LAB06/lab6_GET_STARTED.md) | [Phân Tích Kỹ Thuật Chi Tiết](docs/progress/LAB06/lab6_IMPLEMENTATION.md)
+- **Lab 07:** [Hướng Dẫn Thực Hành (Quick Start)](docs/progress/LAB07/lab7_GET_STARTED.md) | [Phân Tích Kỹ Thuật Chi Tiết](docs/progress/LAB07/lab7_IMPLEMENTATION.md)
 
